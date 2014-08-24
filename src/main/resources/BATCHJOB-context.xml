@@ -1,0 +1,61 @@
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:batch="http://www.springframework.org/schema/batch" 
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:util="http://www.springframework.org/schema/util" 
+	xmlns:context="http://www.springframework.org/schema/context"
+	xmlns:p="http://www.springframework.org/schema/p"
+	xmlns:c="http://www.springframework.org/schema/c"
+	xsi:schemaLocation="
+		http://www.springframework.org/schema/beans 
+		http://www.springframework.org/schema/beans/spring-beans.xsd
+		http://www.springframework.org/schema/util 
+		http://www.springframework.org/schema/util/spring-util.xsd
+		http://www.springframework.org/schema/batch 
+		http://www.springframework.org/schema/batch/spring-batch.xsd
+		http://www.springframework.org/schema/context 
+		http://www.springframework.org/schema/context/spring-context.xsd">
+
+	<import resource="classpath:/simple-job-launcher-context.xml" />
+	<import resource="classpath:/hibernate-context.xml" />
+
+	<context:component-scan base-package="jag.batch.dao" />
+
+	<batch:job id="TEST">
+		<batch:step id="STEP_1">
+			<batch:tasklet transaction-manager="transactionManager">
+				<batch:chunk reader="bookReader" writer="bookWriter"
+					commit-interval="10" />
+			</batch:tasklet>
+		</batch:step>
+	</batch:job>
+
+	<bean id="bookWriter" 
+		class="org.springframework.batch.item.database.HibernateItemWriter" 
+		scope="step" 
+		p:sessionFactory-ref="sessionFactory"
+	/>
+
+	<bean id="bookReader" 
+		class="org.springframework.batch.item.file.FlatFileItemReader" 
+		scope="step">
+		<property name="resource" value="file:#{jobParameters['INPUT.FILE']}" />
+		<property name="lineMapper">
+			<bean class="org.springframework.batch.item.file.mapping.DefaultLineMapper">
+				<property name="fieldSetMapper">
+					<bean
+						class="org.springframework.batch.item.file.mapping.BeanWrapperFieldSetMapper"
+						p:targetType="#{Class.forName('jag.batch.model.Book')}" />
+				</property>
+				<property name="lineTokenizer">
+					<bean
+						class="org.springframework.batch.item.file.transform.DelimitedLineTokenizer"
+						p:delimiter="|">
+						<property name="names" value="author, title" />
+					</bean>
+				</property>
+			</bean>
+		</property>
+	</bean>
+
+
+</beans>
